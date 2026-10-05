@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Schaltterme aus Schalttabellen (DNF)</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#f3f6f4; --card:#ffffff; --ink:#1b2a27; --muted:#5b6b67; --line:#c9d6d1;
+  --accent:#0f6b5c; --accent-ink:#ffffff; --sel:#dff0ea;
+  --ok:#1d7a3a; --ok-bg:#dcf2e1; --bad:#b3261e; --bad-bg:#fbe2df;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#121a18; --card:#1b2624; --ink:#e6efec; --muted:#9bb0aa; --line:#33443f;
+    --accent:#4fc3a8; --accent-ink:#0b1513; --sel:#244039;
+    --ok:#7fd99a; --ok-bg:#1d3a27; --bad:#ff9d94; --bad-bg:#432220;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121a18; --card:#1b2624; --ink:#e6efec; --muted:#9bb0aa; --line:#33443f;
+  --accent:#4fc3a8; --accent-ink:#0b1513; --sel:#244039;
+  --ok:#7fd99a; --ok-bg:#1d3a27; --bad:#ff9d94; --bad-bg:#432220;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;line-height:1.5}
+main{max-width:860px;margin:0 auto;padding:24px 16px 40px}
+h1{font-size:1.6rem;margin:0 0 6px}
+.lead{color:var(--muted);margin:0 0 18px}
+.mono{font-family:Consolas,"Courier New",monospace}
+details.rules{background:var(--card);border:2px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:18px}
+details.rules summary{cursor:pointer;font-weight:600}
+details.rules ol{margin:8px 0 0;padding-left:22px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+button.tab{font:inherit;font-weight:600;color:var(--accent);background:var(--card);border:2px solid var(--line);border-radius:10px;padding:9px 14px;cursor:pointer;text-align:left}
+button.tab small{display:block;font-weight:400;opacity:.85}
+button.tab:hover{border-color:var(--accent)}
+button.tab.active{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.panel{background:var(--card);border:2px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.panel.ok{background:var(--ok-bg);border-color:var(--ok)}
+.panel h2{font-size:1rem;margin:0 0 8px}
+.panel .step{color:var(--muted);font-weight:600}
+table.tt{border-collapse:separate;border-spacing:0;margin:0 auto 4px;border:2px solid var(--line);border-radius:10px;overflow:hidden;font-family:Consolas,"Courier New",monospace;font-size:1.15rem}
+.tt th,.tt td{padding:6px 16px;text-align:center;border-bottom:1px solid var(--line)}
+.tt th{background:var(--sel);font-size:1rem}
+.tt tr:last-child td{border-bottom:none}
+.tt th.q,.tt td.q{border-left:2px solid var(--line);font-weight:700}
+.tt tr.pick{cursor:pointer}
+.tt tr.pick:hover td{background:var(--sel)}
+.tt tr.sel td{background:var(--sel)}
+.tt tr.one td{background:var(--ok-bg)}
+.tt tr.zero td{opacity:.55}
+button.mk{width:1.8em;height:1.8em;border-radius:6px;border:2px solid var(--line);background:var(--card);color:var(--accent);font-weight:700;cursor:pointer;line-height:1}
+button.mk.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.mt{border:2px solid var(--line);border-radius:10px;padding:10px;margin-top:10px}
+.mt.ok{background:var(--ok-bg);border-color:var(--ok)}
+.mt.bad{background:var(--bad-bg);border-color:var(--bad)}
+.mt .hd{font-weight:600;font-size:.95rem;margin-bottom:6px}
+.answer{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.eq{font-family:Consolas,"Courier New",monospace;font-weight:700;font-size:1.2rem}
+.slot{flex:1;min-height:52px;display:flex;flex-wrap:wrap;align-items:center;gap:6px;border:2px dashed var(--line);border-radius:10px;padding:6px;background:var(--card)}
+.slot .hint{color:var(--muted);font-size:.85rem;padding:0 4px}
+.pool{display:flex;flex-wrap:wrap;gap:6px}
+button.tile{font-family:Consolas,"Courier New",monospace;font-size:1.2rem;font-weight:700;min-width:2.4em;height:2.4em;border-radius:10px;cursor:pointer;padding:0 10px;border:2px solid var(--line);background:var(--card);color:var(--accent)}
+button.tile:hover:not(:disabled){border-color:var(--accent)}
+button.tile:disabled{opacity:.3;cursor:default;border-style:dashed}
+button.tile.placed{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.note{margin:6px 0 0;font-weight:600;font-size:.9rem;color:var(--bad);min-height:1.2em}
+.mt.ok .note{color:var(--ok)}
+.btn{font:inherit;font-weight:600;border-radius:10px;padding:9px 18px;cursor:pointer;border:2px solid var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;color:var(--accent)}
+.row-act{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.fb{font-weight:600;color:var(--bad)}
+.final .dnf{font-size:1.4rem;font-weight:700;margin:4px 0 8px;overflow-wrap:anywhere}
+@media (max-width:560px){.tt th,.tt td{padding:6px 10px}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Schaltterme aus Schalttabellen (DNF)</h1>
+  <p class="lead">Aus einer Schalttabelle entsteht Schritt für Schritt die disjunktive Normalform (DNF). Sie ist die Grundlage für das spätere Zeichnen eines Schaltnetzes.</p>
+
+  <details class="rules" open>
+    <summary>So gehst du vor</summary>
+    <ol>
+      <li>Markiere alle Zeilen, bei denen Q = 1 ist.</li>
+      <li>Bilde zu jeder markierten Zeile einen Minterm. Verknüpfe dazu alle Eingangsvariablen mit ∧. Hat eine Variable in der Zeile den Wert 1, schreibst du sie unverändert. Hat sie den Wert 0, schreibst du ¬ davor.</li>
+      <li>Verknüpfe alle Minterme mit ∨. Das Ergebnis ist die DNF.</li>
+    </ol>
+  </details>
+
+  <div class="tabs" id="tabs"></div>
+  <div id="work"></div>
+  <div class="row-act"><button class="btn ghost" data-act="reset">Aufgabe neu starten</button></div>
+</main>
+
+<script>
+/* ===== Einstellung für die Lehrkraft =====
+   Variablennamen hier ändern, z. B. ["x","y","z","w"].
+   Alternativ per Link: …?vars=x,y,z,w */
+let VARS = ["a","b","c","d"];
+try{
+  const q = new URLSearchParams(location.search).get("vars");
+  if(q){ const v = q.split(",").map(s=>s.trim()).filter(Boolean); if(v.length===4) VARS = v; }
+}catch(e){}
+
+const AND="∧", OR="∨", NOT="¬";
+// n = Anzahl Eingänge, ones = Zeilen (Zählung ab 0), in denen Q = 1 ist
+const tasks = [
+  {n:2, ones:[1]},
+  {n:2, ones:[1,2]},
+  {n:3, ones:[3,5,6]},
+  {n:3, ones:[3,5,6,7]},
+  {n:4, ones:[1,6,11,12]}
+];
+const bitsOf = (n,r)=>Array.from({length:n},(_,k)=>(r>>(n-1-k))&1);
+const mtString = (n,r)=>bitsOf(n,r).map((b,i)=>(b?"":NOT)+VARS[i]).join(" "+AND+" ");
+const fresh = ()=>({stage:1, marked:{}, mt:{}, res:null, dnf:[], fb1:"", fb2:"", fb3:"", done:false});
+let S = tasks.map(fresh);
+let cur = 0;
+
+/* ---------- Prüfungen ---------- */
+function checkMinterm(t,r,tokens){
+  const bad = {ok:false, note:"Der Term ist unvollständig: Er besteht aus Variablen (ggf. mit ¬), die mit ∧ verknüpft sind."};
+  const names = VARS.slice(0,t.n), lits = [];
+  let i = 0;
+  for(;;){
+    let neg = false;
+    if(tokens[i]===NOT){ neg = true; i++; }
+    const v = tokens[i];
+    if(!names.includes(v)) return bad;
+    lits.push({v,neg}); i++;
+    if(i===tokens.length) break;
+    if(tokens[i]!==AND) return bad;
+    i++;
+  }
+  if(lits.length!==t.n || new Set(lits.map(l=>l.v)).size!==t.n)
+    return {ok:false, note:"Jede Eingangsvariable kommt genau einmal vor."};
+  const bits = bitsOf(t.n,r);
+  if(lits.some(l=> l.neg !== (bits[VARS.indexOf(l.v)]===0)))
+    return {ok:false, note:"Prüfe die Negationen: Bei Wert 0 steht ¬ vor der Variablen, bei Wert 1 nicht."};
+  return {ok:true, note:"Richtig."};
+}
+function checkDnf(t,dnf){
+  const k = t.ones.length;
+  const ms = dnf.filter(x=>x.m!==undefined).length;
+  if(ms<k) return "Es fehlen noch Minterme.";
+  if(dnf.length!==2*k-1 || dnf.some((x,i)=> i%2===0 ? x.m===undefined : x.m!==undefined))
+    return "Zwischen zwei Mintermen steht jeweils genau ein ∨ (ODER).";
+  return "";
+}
+
+/* ---------- Darstellung ---------- */
+function tableHTML(t,st){
+  const rows = 1<<t.n;
+  let h = `<table class="tt"><thead><tr><th></th>${VARS.slice(0,t.n).map(v=>`<th>${v}</th>`).join("")}<th class="q">Q</th></tr></thead><tbody>`;
+  for(let r=0;r<rows;r++){
+    const isOne = t.ones.includes(r), mk = !!st.marked[r];
+    let cls = "";
+    if(st.stage===1){ cls = "pick" + (mk?" sel":""); }
+    else cls = isOne ? "one" : "zero";
+    h += `<tr class="${cls}" ${st.stage===1?`data-act="mark" data-r="${r}"`:""}>
+      <td>${st.stage===1?`<button type="button" class="mk${mk?" on":""}" aria-pressed="${mk}" aria-label="Zeile ${r+1} markieren">${mk?"✓":""}</button>`:""}</td>
+      ${bitsOf(t.n,r).map(b=>`<td>${b}</td>`).join("")}<td class="q">${isOne?1:0}</td></tr>`;
+  }
+  return h + `</tbody></table>`;
+}
+const tile = (txt,attrs="",cls="")=>`<button type="button" class="tile ${cls}" ${attrs}>${txt}</button>`;
+
+function render(){
+  const t = tasks[cur], st = S[cur], k = t.ones.length;
+  document.getElementById("tabs").innerHTML = tasks.map((x,i)=>
+    `<button type="button" class="tab${i===cur?" active":""}" data-act="tab" data-t="${i}">Aufgabe ${i+1}${S[i].done?" ✓":""}<small>${x.n} Eingänge</small></button>`).join("");
+
+  let h = `<div class="panel"><h2><span class="step">Schalttabelle</span></h2>${tableHTML(t,st)}`;
+  if(st.stage===1){
+    h += `<h2 style="margin-top:10px"><span class="step">Schritt 1:</span> Markiere alle Zeilen, bei denen Q = 1 ist.</h2>
+      <div class="row-act"><button type="button" class="btn primary" data-act="check1">Prüfen</button>${st.fb1?`<span class="fb" role="alert">${st.fb1}</span>`:""}</div>`;
+  }
+  h += `</div>`;
+
+  if(st.stage>=2){
+    const locked = st.stage>2;
+    h += `<div class="panel"><h2><span class="step">Schritt 2:</span> Bilde zu jeder Zeile mit Q = 1 den Minterm.</h2>`;
+    t.ones.forEach(r=>{
+      const toks = st.mt[r] || [];
+      const res = st.res ? st.res[r] : null;
+      const bits = bitsOf(t.n,r);
+      h += `<div class="mt${res?(res.ok?" ok":" bad"):""}">
+        <div class="hd">Zeile ${r+1}: ${bits.map((b,i)=>`${VARS[i]} = ${b}`).join(", ")}</div>
+        <div class="answer"><span class="eq">m =</span><div class="slot">` +
+        (toks.length ? toks.map((x,i)=>tile(x,locked?"disabled":`data-act="rm" data-r="${r}" data-i="${i}" title="Entfernen" aria-label="${x} entfernen"`,"placed")).join("")
+                     : `<span class="hint">Bausteine antippen</span>`) +
+        `</div></div>` +
+        (locked ? "" : `<div class="pool">${VARS.slice(0,t.n).map(v=>tile(v,`data-act="tok" data-r="${r}" data-x="${v}"`)).join("")}${tile(NOT,`data-act="tok" data-r="${r}" data-x="${NOT}"`)}${tile(AND,`data-act="tok" data-r="${r}" data-x="${AND}"`)}</div>`) +
+        `<p class="note">${res?res.note:""}</p></div>`;
+    });
+    if(!locked){
+      h += `<div class="row-act"><button type="button" class="btn primary" data-act="check2">Prüfen</button>${st.fb2?`<span class="fb" role="alert">${st.fb2}</span>`:""}</div>`;
+    }
+    h += `</div>`;
+  }
+
+  if(st.stage>=3){
+    const used = new Set(st.dnf.filter(x=>x.m!==undefined).map(x=>x.m));
+    h += `<div class="panel"><h2><span class="step">Schritt 3:</span> Verknüpfe die Minterme mit ∨ zur DNF.</h2>
+      <div class="answer"><span class="eq">Q =</span><div class="slot">` +
+      (st.dnf.length ? st.dnf.map((x,i)=>tile(x.m!==undefined?mtString(t.n,x.m):OR, st.done?"disabled":`data-act="rmd" data-i="${i}" title="Entfernen"`,"placed")).join("")
+                     : `<span class="hint">Minterme und ∨ antippen</span>`) +
+      `</div></div>`;
+    if(!st.done){
+      h += `<div class="pool">${t.ones.map(r=>tile(mtString(t.n,r),`data-act="blk" data-m="${r}"`+(used.has(r)?" disabled":""))).join("")}${tile(OR,`data-act="orTok"`)}</div>
+        <div class="row-act"><button type="button" class="btn primary" data-act="check3">Prüfen</button>${st.fb3?`<span class="fb" role="alert">${st.fb3}</span>`:""}</div>`;
+    }
+    h += `</div>`;
+  }
+
+  if(st.done){
+    const full = st.dnf.filter(x=>x.m!==undefined).map(x=>k>1?`(${mtString(t.n,x.m)})`:mtString(t.n,x.m)).join(" ∨ ");
+    h += `<div class="panel ok final"><h2>Geschafft! Das ist die disjunktive Normalform:</h2>
+      <div class="dnf mono">Q = ${full}</div>
+      <div>Aus der DNF lässt sich direkt ein Schaltnetz zeichnen: Jeder Minterm wird zu einem UND-Gatter (mit NICHT-Gattern an den negierten Eingängen). Die Ausgänge aller UND-Gatter laufen in ein ODER-Gatter.</div></div>`;
+  }
+  document.getElementById("work").innerHTML = h;
+}
+
+/* ---------- Ereignisse ---------- */
+document.addEventListener("click", e=>{
+  const b = e.target.closest("[data-act]"); if(!b || b.disabled) return;
+  const t = tasks[cur], st = S[cur], act = b.dataset.act;
+  if(act==="tab") cur = +b.dataset.t;
+  else if(act==="reset") S[cur] = fresh();
+  else if(act==="mark"){ const r=+b.dataset.r; st.marked[r] = !st.marked[r]; st.fb1=""; }
+  else if(act==="check1"){
+    const missing = t.ones.filter(r=>!st.marked[r]).length;
+    const extra = Object.keys(st.marked).filter(r=>st.marked[r] && !t.ones.includes(+r)).length;
+    if(!missing && !extra){ st.stage = 2; st.fb1=""; }
+    else st.fb1 = missing && !extra ? "Es fehlen noch markierte Zeilen."
+                : extra && !missing ? "Mindestens eine markierte Zeile hat Q = 0."
+                : "Nicht ganz: Markiere genau die Zeilen mit Q = 1.";
+  }
+  else if(act==="tok"){ const r=+b.dataset.r; (st.mt[r] = st.mt[r]||[]).push(b.dataset.x); st.res=null; st.fb2=""; }
+  else if(act==="rm"){ st.mt[+b.dataset.r].splice(+b.dataset.i,1); st.res=null; st.fb2=""; }
+  else if(act==="check2"){
+    st.res = {}; let n = 0;
+    t.ones.forEach(r=>{ const x = checkMinterm(t,r,st.mt[r]||[]); st.res[r]=x; if(x.ok) n++; });
+    if(n===t.ones.length){ st.stage = 3; st.fb2=""; }
+    else st.fb2 = `${n} von ${t.ones.length} Mintermen richtig.`;
+  }
+  else if(act==="blk"){ st.dnf.push({m:+b.dataset.m}); st.fb3=""; }
+  else if(act==="orTok"){ st.dnf.push({or:true}); st.fb3=""; }
+  else if(act==="rmd"){ st.dnf.splice(+b.dataset.i,1); st.fb3=""; }
+  else if(act==="check3"){
+    const msg = checkDnf(t,st.dnf);
+    if(msg) st.fb3 = msg; else { st.done = true; st.fb3=""; }
+  }
+  render();
+});
+
+render();
+</script>
+</body>
+</html>
